@@ -1,0 +1,42 @@
+name: Build and match Serie A FIFA-EA ratings
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: Build five full compact edition tables
+        run: python build_unified_ratings.py
+
+      - name: Match actual Serie A starters to ratings
+        run: |
+          python match_starters_to_ratings.py \
+            --ratings data/processed/serie_a_fifa_ea_ratings_2021_26.csv \
+            --lineups data/serie_a_starting_xi.csv
+
+      - name: Show coverage
+        run: |
+          cat data/processed/serie_a_starter_rating_match_audit.csv
+          ls -lh data/processed
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: serie-a-fifa-ea-ratings-v5-matched
+          path: data/processed/*.csv
+          retention-days: 30
