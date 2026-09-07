@@ -1,0 +1,29 @@
+
+name: Rebuild EPL starting XIs
+
+on:
+  workflow_dispatch:
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pandas requests
+
+      - name: Rebuild five EPL seasons
+        run: python rebuild_epl_lineups.py
+
+      - name: Upload reconstructed EPL lineups
+        uses: actions/upload-artifact@v4
+        with:
+          name: epl-starting-xi-2021-26
+          path: output/
+          retention-days: 30
