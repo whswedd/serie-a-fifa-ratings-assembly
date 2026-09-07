@@ -186,30 +186,9 @@ def download_kaggle_file(dataset, filename, dest):
         except Exception as e:
             errors.append(f"{u}: {type(e).__name__}: {e}")
 
-    # Final fallback: dataset ZIP. This is deliberately last because some FIFA
-    # datasets contain very large update-history files.
-    full_url = f"https://www.kaggle.com/api/v1/datasets/download/{owner}/{slug}"
-    try:
-        print("Individual-file download failed; trying dataset ZIP fallback", flush=True)
-        r = get(full_url, timeout=900)
-        with zipfile.ZipFile(io.BytesIO(r.content)) as z:
-            members = z.namelist()
-            target = next(
-                (m for m in members
-                 if m == filename or Path(m).name == Path(filename).name),
-                None
-            )
-            if target is None:
-                raise RuntimeError(
-                    f"{filename} not found in dataset ZIP. Members={members[:40]}"
-                )
-            dest.write_bytes(z.read(target))
-        return full_url
-    except Exception as e:
-        errors.append(f"{full_url}: {type(e).__name__}: {e}")
-
     raise RuntimeError(
-        f"Failed Kaggle download {dataset}/{filename}. "
+        f"Failed compact Kaggle file download {dataset}/{filename}. "
+        "Full-dataset ZIP fallback is disabled to avoid multi-GB downloads. "
         + " | ".join(errors)
     )
 
@@ -228,6 +207,10 @@ def load_source(season, cfg, force=False):
                     r = get(u, timeout=300)
                     if len(r.content) < 100:
                         raise RuntimeError(f"Response too small: {len(r.content)} bytes")
+                    if len(r.content) > 100_000_000:
+                        raise RuntimeError(
+                            f"Refusing oversized source: {len(r.content):,} bytes (>100 MB)"
+                        )
                     dest.write_bytes(r.content)
                     chosen_url = u
                     break
@@ -277,15 +260,15 @@ def standardize(df, season, cfg, source_file, source_url):
     out["Edition"] = cfg["edition"]
 
     out["PlayerID"] = series(df, "player_id","sofifa_id","id","playerid")
-    out["Player"] = series(df, "short_name","name","player_name","long_name")
-    out["FullName"] = series(df, "long_name","full_name","fullname","name")
+    out["Player"] = series(df, "short_name","name","player_name","long_name","known as")
+    out["FullName"] = series(df, "long_name","full_name","fullname","name","full name")
     out["DOB"] = series(df, "dob","date_of_birth","birthdate")
     out["Age"] = series(df, "age")
-    out["Club"] = series(df, "club_name","club","team","team_name")
+    out["Club"] = series(df, "club_name","club","team","team_name","club name")
     out["League"] = series(df, "league_name","league","competition")
     out["Nationality"] = series(df, "nationality_name","nationality","nation","country")
     out["Overall"] = pd.to_numeric(
-        series(df, "overall","overall_rating","overallrating","ovr"),
+        series(df, "overall","overall_rating","overallrating","ovr","overall"),
         errors="coerce"
     )
     out["Potential"] = pd.to_numeric(
@@ -293,10 +276,10 @@ def standardize(df, season, cfg, source_file, source_url):
         errors="coerce"
     )
     out["Positions"] = series(
-        df, "player_positions","positions","alternative positions","position"
+        df, "player_positions","positions","alternative positions","position","positions played"
     )
     out["PrimaryPosition"] = series(
-        df, "club_position","best_position","primary_position","position"
+        df, "club_position","best_position","primary_position","position","best position","club position"
     )
 
     out["SourceType"] = cfg["type"]

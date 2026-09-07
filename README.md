@@ -86,3 +86,14 @@ The run log now prints:
 - the selected source file
 - downloaded byte size
 - detailed endpoint errors if a source fails
+
+
+## v4 lean-build changes
+
+- FIFA 23 now uses the compact public GitHub snapshot:
+  `YoNG-Zaii/MH3511-FIFA-Analysis/fifa23_players_data.csv`
+- Full Kaggle dataset ZIP fallback is **disabled**.
+- Direct source downloads larger than 100 MB are refused.
+- The build only uses compact one-row-per-player snapshots.
+- Added schema aliases for the compact FIFA 23 columns:
+  `Known As`, `Full Name`, `Club Name`, `Positions Played`, `Best Position`.
