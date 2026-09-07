@@ -97,3 +97,24 @@ The run log now prints:
 - The build only uses compact one-row-per-player snapshots.
 - Added schema aliases for the compact FIFA 23 columns:
   `Known As`, `Full Name`, `Club Name`, `Positions Played`, `Best Position`.
+
+
+## v5 — starter-first matching
+
+v5 changes the architecture:
+
+1. Keep every row from each compact FIFA/EA edition source.
+2. Use the bundled cleaned `data/serie_a_starting_xi.csv` as the authoritative Serie A player universe.
+3. Match each distinct starter-season to the corresponding FIFA/EA edition.
+4. Exact normalized names first.
+5. Duplicate exact names are disambiguated with club and age.
+6. Remaining players use high-threshold fuzzy matching with surname, club and age support.
+7. The 2022-23 Spezia–Verona relegation playoff (`MatchID 4185671`) is excluded.
+
+Main matched output:
+`data/processed/serie_a_unified_fifa_ea_starter_ratings_2021_26.csv`
+
+Coverage audit:
+`data/processed/serie_a_starter_rating_match_audit.csv`
+
+This removes dependence on source-side league labels and is robust to transfers.

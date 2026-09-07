@@ -340,14 +340,17 @@ def main():
         std = std.loc[std["Overall"].notna()].copy()
         with_rating = len(std)
 
-        filtered, filter_method = filter_with_lineups(std, args.lineups, season)
-        filtered = filtered.drop_duplicates(
+        # v5: keep the full compact edition table. We match/filter against the
+        # actual Serie A starters in a second pass. This avoids losing players
+        # when a source has no League field or has transfer/league-label issues.
+        filtered = std.drop_duplicates(
             subset=["Season","PlayerID","Player","Club"], keep="first"
         )
+        filter_method = "starter_match_second_pass"
 
         print(
             f"raw={before:,} with_overall={with_rating:,} "
-            f"serie_a_relevant={len(filtered):,}",
+            f"retained_for_matching={len(filtered):,}",
             flush=True
         )
 
