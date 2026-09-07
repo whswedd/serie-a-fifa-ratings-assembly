@@ -3,13 +3,23 @@
     "edition": "FIFA 22",
     "type": "url_csv",
     "url": "https://raw.githubusercontent.com/MakuG/fifa22/main/players_22.csv",
-    "notes": "Public GitHub mirror of the FIFA 22 complete-player CSV."
+    "notes": "Public GitHub mirror of the FIFA 22 complete-player CSV.",
+    "fallback_urls": [
+      "https://raw.githubusercontent.com/iamsouravbanerjee/FIFA-22-Complete-Player-Dataset/master/players_22.csv"
+    ]
   },
   "2022-23": {
     "edition": "FIFA 23",
-    "type": "url_csv",
-    "url": "https://raw.githubusercontent.com/datasets/fifa-23/main/data/players_23.csv",
-    "notes": "Public GitHub dataset mirror; compact one-row-per-player FIFA 23 table."
+    "type": "kaggle_dataset",
+    "dataset": "stefanoleone992/fifa-23-complete-player-dataset",
+    "preferred_patterns": [
+      "male_players.csv",
+      "male_players_23.csv",
+      "players_23.csv",
+      "male_players_legacy.csv"
+    ],
+    "filter_fifa_version": 23,
+    "notes": "Canonical Stefano Leone FIFA 23 complete-player dataset; public Kaggle API."
   },
   "2023-24": {
     "edition": "EA FC 24",
@@ -40,6 +50,9 @@
     "edition": "EA FC 26",
     "type": "url_csv",
     "url": "https://raw.githubusercontent.com/thompgt/fc26-player-analysis/master/data/processed/players_fc26_clean.csv",
-    "notes": "Full cleaned FC26 population from thompgt/fc26-player-analysis."
+    "notes": "Full cleaned FC26 population from thompgt/fc26-player-analysis.",
+    "fallback_urls": [
+      "https://raw.githubusercontent.com/thompgt/fc26-player-analysis/master/data/processed/players_merged.csv"
+    ]
   }
 }

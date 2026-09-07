@@ -61,8 +61,8 @@ def get(url, timeout=120):
 def kaggle_files(dataset):
     owner, slug = dataset.split("/", 1)
     urls = [
-        f"https://www.kaggle.com/api/v1/datasets/list/{owner}/{slug}",
         f"https://www.kaggle.com/api/v1/datasets/view/{owner}/{slug}",
+        f"https://www.kaggle.com/api/v1/datasets/list/{owner}/{slug}",
     ]
     last = None
     for u in urls:
@@ -141,10 +141,27 @@ def load_source(season, cfg, force=False):
     safe = edition.lower().replace(" ","_").replace("/","_")
     if cfg["type"] == "url_csv":
         dest = RAW / f"{safe}.csv"
+        chosen_url = cfg["url"]
         if force or not dest.exists():
-            print(f"Downloading {edition}: {cfg['url']}", flush=True)
-            dest.write_bytes(get(cfg["url"], timeout=300).content)
-        return pd.read_csv(dest, low_memory=False), dest.name, cfg["url"]
+            urls = [cfg["url"]] + list(cfg.get("fallback_urls", []))
+            last = None
+            for u in urls:
+                try:
+                    print(f"Downloading {edition}: {u}", flush=True)
+                    r = get(u, timeout=300)
+                    if len(r.content) < 100:
+                        raise RuntimeError(f"Response too small: {len(r.content)} bytes")
+                    dest.write_bytes(r.content)
+                    chosen_url = u
+                    break
+                except Exception as e:
+                    last = e
+                    print(f"  source failed: {e}", flush=True)
+            else:
+                raise RuntimeError(
+                    f"All direct sources failed for {edition}. Last error: {last}"
+                )
+        return pd.read_csv(dest, low_memory=False), dest.name, chosen_url
 
     if cfg["type"] == "kaggle_dataset":
         listing = kaggle_files(cfg["dataset"])

@@ -62,3 +62,12 @@ edition and keeps the latest available snapshot per player where an update date 
 This assembler does **not** fuzzy-match lineups yet. The exact-name coverage CSV is intentionally
 a first diagnostic. The next step is to run the EPL-style player matcher using player name,
 club/team, position and age/DOB to resolve aliases and transfers safely.
+
+
+## v2 fix
+
+v2 replaces the obsolete FIFA 23 GitHub mirror with the canonical public Kaggle dataset:
+
+`stefanoleone992/fifa-23-complete-player-dataset`
+
+The downloader also now supports fallback URLs for direct CSV sources. A single dead mirror will no longer immediately terminate the build.
