@@ -1,0 +1,71 @@
+name: Build Serie A FIFA-EA ratings table
+
+on:
+  workflow_dispatch:
+    inputs:
+      use_lineups:
+        description: "Use data/serie_a_starting_xi.csv to retain actual Serie A starters"
+        required: true
+        default: true
+        type: boolean
+      force_download:
+        description: "Redownload source files"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build unified ratings
+        shell: bash
+        run: |
+          ARGS=""
+          if [ "${{ inputs.force_download }}" = "true" ]; then
+            ARGS="$ARGS --force"
+          fi
+
+          if [ "${{ inputs.use_lineups }}" = "true" ] && [ -f "data/serie_a_starting_xi.csv" ]; then
+            python build_unified_ratings.py \
+              --lineups data/serie_a_starting_xi.csv \
+              $ARGS
+          else
+            python build_unified_ratings.py $ARGS
+          fi
+
+      - name: Show audit
+        if: always()
+        run: |
+          echo "=== Source audit ==="
+          cat data/processed/serie_a_fifa_ea_source_audit.csv || true
+          echo
+          echo "=== Exact-name coverage ==="
+          cat data/processed/serie_a_fifa_ea_exact_name_coverage.csv || true
+          echo
+          ls -lh data/processed || true
+
+      - name: Upload ratings artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: serie-a-fifa-ea-ratings-2021-26
+          path: data/processed/*.csv
+          if-no-files-found: warn
+          retention-days: 30
