@@ -64,30 +64,63 @@ def kaggle_files(dataset):
         f"https://www.kaggle.com/api/v1/datasets/view/{owner}/{slug}",
         f"https://www.kaggle.com/api/v1/datasets/list/{owner}/{slug}",
     ]
-    last = None
+    errors = []
     for u in urls:
         try:
-            data = get(u).json()
-            files = data.get("resources") or data.get("files") or []
+            r = get(u)
+            data = r.json()
+
+            # Kaggle has used several keys over time.
+            files = (
+                data.get("datasetFiles")
+                or data.get("resources")
+                or data.get("files")
+                or []
+            )
+
             out = []
             for x in files:
-                name = x.get("path") or x.get("name") or x.get("ref")
-                size = x.get("size") or x.get("totalBytes") or 0
+                name = (
+                    x.get("name")
+                    or x.get("path")
+                    or x.get("ref")
+                    or x.get("fileName")
+                )
+                size = (
+                    x.get("totalBytes")
+                    or x.get("size")
+                    or x.get("bytes")
+                    or 0
+                )
                 if name:
                     out.append((name, size))
+
             if out:
+                print(f"Kaggle metadata returned {len(out)} files", flush=True)
+                for n, s in out[:20]:
+                    print(f"  - {n} ({s} bytes)", flush=True)
                 return out
+
+            errors.append(
+                f"{u}: no file list; top-level keys={list(data.keys())[:30]}"
+            )
         except Exception as e:
-            last = e
-    raise RuntimeError(f"Could not list Kaggle files for {dataset}: {last}")
+            errors.append(f"{u}: {type(e).__name__}: {e}")
+
+    raise RuntimeError(
+        f"Could not list Kaggle files for {dataset}. "
+        + " | ".join(errors)
+    )
 
 def choose_kaggle_file(files, patterns):
     names = [x[0] for x in files]
     for p in patterns:
         for n in names:
             if n.lower() == p.lower():
+                print(f"Selected Kaggle file: {n}", flush=True)
                 return n
-    # Prefer CSVs that clearly describe male/player data and avoid teams/coaches.
+
+    size_by_name = {n: s for n, s in files}
     csvs = [n for n in names if n.lower().endswith(".csv")]
     scored = []
     for n in csvs:
@@ -95,46 +128,90 @@ def choose_kaggle_file(files, patterns):
         score = 0
         if "male" in z: score += 8
         if "player" in z: score += 8
-        if "legacy" in z: score += 5
-        if "team" in z or "coach" in z or "female" in z: score -= 20
-        scored.append((score, n))
+        if "legacy" in z: score += 20
+        if "team" in z or "coach" in z or "female" in z: score -= 30
+
+        # Penalize extremely large update-history CSVs; for our model we need
+        # a season snapshot, not every historical update.
+        size = size_by_name.get(n, 0) or 0
+        if size > 1_000_000_000:
+            score -= 15
+        scored.append((score, -size, n))
+
     if scored:
         scored.sort(reverse=True)
-        return scored[0][1]
+        chosen = scored[0][2]
+        print(f"Selected Kaggle file: {chosen}", flush=True)
+        return chosen
     raise RuntimeError("No CSV found in Kaggle dataset")
 
 def download_kaggle_file(dataset, filename, dest):
     owner, slug = dataset.split("/", 1)
-    # Kaggle individual-file endpoint. Public datasets normally do not require a token.
+    from urllib.parse import quote
+
+    encoded = quote(filename, safe="")
     candidates = [
-        f"https://www.kaggle.com/api/v1/datasets/download/{owner}/{slug}/{filename}",
-        f"https://www.kaggle.com/api/v1/datasets/download/{owner}/{slug}?filename={filename}",
+        f"https://www.kaggle.com/api/v1/datasets/download/{owner}/{slug}/{encoded}",
+        f"https://www.kaggle.com/api/v1/datasets/download/{owner}/{slug}?filename={encoded}",
     ]
-    last = None
+    errors = []
+
     for u in candidates:
         try:
             r = get(u, timeout=300)
             content = r.content
+
             if content[:2] == b"PK":
                 with zipfile.ZipFile(io.BytesIO(content)) as z:
                     members = z.namelist()
-                    target = None
-                    for m in members:
-                        if m == filename or Path(m).name == Path(filename).name:
-                            target = m
-                            break
+                    target = next(
+                        (m for m in members
+                         if m == filename or Path(m).name == Path(filename).name),
+                        None
+                    )
                     if target is None and len(members) == 1:
                         target = members[0]
                     if target is None:
-                        raise RuntimeError(f"{filename} not in returned zip: {members[:20]}")
+                        raise RuntimeError(
+                            f"{filename} not in returned zip: {members[:30]}"
+                        )
                     dest.write_bytes(z.read(target))
             else:
+                # Kaggle may serve the requested CSV directly.
                 dest.write_bytes(content)
+
             if dest.stat().st_size > 100:
+                print(f"Downloaded {filename}: {dest.stat().st_size:,} bytes", flush=True)
                 return u
         except Exception as e:
-            last = e
-    raise RuntimeError(f"Failed Kaggle download {dataset}/{filename}: {last}")
+            errors.append(f"{u}: {type(e).__name__}: {e}")
+
+    # Final fallback: dataset ZIP. This is deliberately last because some FIFA
+    # datasets contain very large update-history files.
+    full_url = f"https://www.kaggle.com/api/v1/datasets/download/{owner}/{slug}"
+    try:
+        print("Individual-file download failed; trying dataset ZIP fallback", flush=True)
+        r = get(full_url, timeout=900)
+        with zipfile.ZipFile(io.BytesIO(r.content)) as z:
+            members = z.namelist()
+            target = next(
+                (m for m in members
+                 if m == filename or Path(m).name == Path(filename).name),
+                None
+            )
+            if target is None:
+                raise RuntimeError(
+                    f"{filename} not found in dataset ZIP. Members={members[:40]}"
+                )
+            dest.write_bytes(z.read(target))
+        return full_url
+    except Exception as e:
+        errors.append(f"{full_url}: {type(e).__name__}: {e}")
+
+    raise RuntimeError(
+        f"Failed Kaggle download {dataset}/{filename}. "
+        + " | ".join(errors)
+    )
 
 def load_source(season, cfg, force=False):
     edition = cfg["edition"]

@@ -71,3 +71,18 @@ v2 replaces the obsolete FIFA 23 GitHub mirror with the canonical public Kaggle 
 `stefanoleone992/fifa-23-complete-player-dataset`
 
 The downloader also now supports fallback URLs for direct CSV sources. A single dead mirror will no longer immediately terminate the build.
+
+
+## v3 fix
+
+v3 fixes Kaggle metadata parsing. Current Kaggle dataset metadata can expose files under
+`datasetFiles`; v2 only checked older `resources` / `files` fields.
+
+For FIFA 23, v3 explicitly prefers `male_players (legacy)_23.csv`, the compact one-row-per-player
+snapshot, instead of the 5+ GB multi-update history table.
+
+The run log now prints:
+- Kaggle file names returned by metadata
+- the selected source file
+- downloaded byte size
+- detailed endpoint errors if a source fails

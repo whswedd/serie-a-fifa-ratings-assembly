@@ -13,13 +13,14 @@
     "type": "kaggle_dataset",
     "dataset": "stefanoleone992/fifa-23-complete-player-dataset",
     "preferred_patterns": [
-      "male_players.csv",
+      "male_players (legacy)_23.csv",
+      "male_players_legacy_23.csv",
       "male_players_23.csv",
-      "players_23.csv",
-      "male_players_legacy.csv"
+      "male_players.csv",
+      "players_23.csv"
     ],
     "filter_fifa_version": 23,
-    "notes": "Canonical Stefano Leone FIFA 23 complete-player dataset; public Kaggle API."
+    "notes": "Canonical Stefano Leone FIFA 23 dataset. Prefer the legacy one-row-per-player snapshot; avoid the multi-update 5+ GB history file when possible."
   },
   "2023-24": {
     "edition": "EA FC 24",
