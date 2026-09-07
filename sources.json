@@ -1,0 +1,45 @@
+{
+  "2021-22": {
+    "edition": "FIFA 22",
+    "type": "url_csv",
+    "url": "https://raw.githubusercontent.com/MakuG/fifa22/main/players_22.csv",
+    "notes": "Public GitHub mirror of the FIFA 22 complete-player CSV."
+  },
+  "2022-23": {
+    "edition": "FIFA 23",
+    "type": "url_csv",
+    "url": "https://raw.githubusercontent.com/datasets/fifa-23/main/data/players_23.csv",
+    "notes": "Public GitHub dataset mirror; compact one-row-per-player FIFA 23 table."
+  },
+  "2023-24": {
+    "edition": "EA FC 24",
+    "type": "kaggle_dataset",
+    "dataset": "stefanoleone992/ea-sports-fc-24-complete-player-dataset",
+    "preferred_patterns": [
+      "male_players_legacy.csv",
+      "male_players (legacy).csv",
+      "male_players_24.csv",
+      "male_players.csv"
+    ],
+    "filter_fifa_version": 24,
+    "notes": "Canonical Stefano Leone SoFIFA-derived FC24 dataset; prefer legacy/snapshot table."
+  },
+  "2024-25": {
+    "edition": "EA FC 25",
+    "type": "kaggle_dataset",
+    "dataset": "nyagami/ea-sports-fc-25-database-ratings-and-stats",
+    "preferred_patterns": [
+      "male_players.csv",
+      "all_players.csv",
+      "players.csv"
+    ],
+    "filter_fifa_version": 25,
+    "notes": "EA Sports FC 25 ratings/database dataset."
+  },
+  "2025-26": {
+    "edition": "EA FC 26",
+    "type": "url_csv",
+    "url": "https://raw.githubusercontent.com/thompgt/fc26-player-analysis/master/data/processed/players_fc26_clean.csv",
+    "notes": "Full cleaned FC26 population from thompgt/fc26-player-analysis."
+  }
+}
